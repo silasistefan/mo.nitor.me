@@ -5,7 +5,7 @@ fhost=`echo $1 | awk -F\/ '{print $3;}'`
 req=`echo $1 | sed 's/^.*\/\([a-z]*\.[a-z]*\)$/\1/'`
 
 if [ ! -z $3 ]; then
-    url=https://$3/${req}
+    url="https://${3}/${req}"
 else
     url=$1
 fi

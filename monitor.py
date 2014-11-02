@@ -37,8 +37,11 @@ def work_curl (node,host):
     curl_dns = float(get_value(val, "CURL_DNS"))
     https = float(get_value(val, "SSL_TIME")) - curl_dns
     http = float(get_value(val, "TRANSFER_TIME")) - curl_dns - https
+    http_code = int(get_value(val, "HTTP_CODE"))
+    download_size = int(get_value(val, "DOWNLOAD_SIZE"))
 
-    tmp="insert into curl_points(time, host, node, dns_time, https_time, http_time, code, size) values (from_unixtime(%.0f), '%s', '%s', %.3f, %.3f, %.3f, %d, %d)" %(time.time(), str[1], node, dns, https, http, int(get_value(val, "HTTP_CODE")), int(get_value(val, "DOWNLOAD_SIZE")))
+    print "# Generated values => Node: '%s', CDN: '%s', DNS: %.3f, CURL_DNS: %.3f, HTTPs: %.3f, HTTP: %.3f, HTTP_CODE: %d, DOWNLOAD_SIZE: %d" %(node, str[1], dns, curl_dns, https, http, http_code, download_size)
+    tmp="insert into curl_points(time, host, node, dns_time, https_time, http_time, code, size) values (from_unixtime(%.0f), '%s', '%s', %.3f, %.3f, %.3f, %d, %d)" %(time.time(), str[1], node, dns, https, http, http_code, download_size)
     print tmp
 
     conn.execute (tmp)
@@ -62,7 +65,7 @@ while True:
     with open ("/root/curl.list") as f:
         for body in  f:
             if body == "\n":
-                print "Sleeping 3..."
+                print "# Found sleeping signal => sleeping 3 seconds..."
                 time.sleep(3)
             else:
                 work_curl(node, body.rstrip('\n'))

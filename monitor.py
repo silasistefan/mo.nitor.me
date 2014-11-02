@@ -8,10 +8,9 @@ import threading
 import random
 import time
 import MySQLdb
+import ConfigParser
 
 logging.basicConfig()
-
-node=''.join(sys.argv[1:]) or 'undefined'
 
 def get_value(line, search):
     x=line.split("&")
@@ -34,9 +33,10 @@ def work_curl (node,host):
     str=host.split()
     val=curl_host(str)
 
-    dns=float(get_value(val, "DNS_TIME"))
-    https=float(get_value(val, "SSL_TIME")) - float(get_value(val, "CURL_DNS"))
-    http=float(get_value(val, "TRANSFER_TIME")) - float(get_value(val, "CURL_DNS"))
+    dns = float(get_value(val, "DNS_TIME"))
+    curl_dns = float(get_value(val, "CURL_DNS"))
+    https = float(get_value(val, "SSL_TIME")) - curl_dns
+    http = float(get_value(val, "TRANSFER_TIME")) - curl_dns - https
 
     tmp="insert into curl_points(time, host, node, dns_time, https_time, http_time, code, size) values (from_unixtime(%.0f), '%s', '%s', %.3f, %.3f, %.3f, %d, %d)" %(time.time(), str[1], node, dns, https, http, int(get_value(val, "HTTP_CODE")), int(get_value(val, "DOWNLOAD_SIZE")))
     print tmp
@@ -45,9 +45,18 @@ def work_curl (node,host):
     db.commit()
 
 node=''.join(sys.argv[1:]) or "localhost"
+version='0.1'
+
+config = ConfigParser.ConfigParser()
+config.readfp(open(r'monitor.cfg'))
+
+hostname = config.get('mysql', 'hostname')
+username = config.get('mysql', 'username')
+password = config.get('mysql', 'password')
+database = config.get('mysql', 'database')
 
 while True:
-    db = MySQLdb.connect(host="127.0.0.1", user="username", passwd="password", db="database")
+    db = MySQLdb.connect(host=hostname, user=username, passwd=password, db=database)
     conn=db.cursor()
 
     with open ("/root/curl.list") as f:

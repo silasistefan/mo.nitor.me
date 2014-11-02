@@ -1,0 +1,5 @@
+[mysql]
+hostname = YOUR_MYSQL_SERVER
+username = YOUR_MYSQL_USER
+password = YOUR_MYSQL_PASS
+database = YOUR_MYSQL_DB

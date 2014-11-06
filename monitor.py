@@ -39,9 +39,10 @@ def work_curl (node,host):
     http = float(get_value(val, "TRANSFER_TIME")) - curl_dns - https
     http_code = int(get_value(val, "HTTP_CODE"))
     download_size = int(get_value(val, "DOWNLOAD_SIZE"))
+    fst_byte = float(get_value(val, "1ST_BYTE")) - curl_dns
 
-    print "# Generated values => Node: '%s', CDN: '%s', DNS: %.3f, CURL_DNS: %.3f, HTTPs: %.3f, HTTP: %.3f, HTTP_CODE: %d, DOWNLOAD_SIZE: %d" %(node, str[1], dns, curl_dns, https, http, http_code, download_size)
-    tmp="insert into curl_points(time, host, node, dns_time, https_time, http_time, code, size) values (from_unixtime(%.0f), '%s', '%s', %.3f, %.3f, %.3f, %d, %d)" %(time.time(), str[1], node, dns, https, http, http_code, download_size)
+    print "# Generated values => Node: '%s', CDN: '%s', DNS: %.3f, CURL_DNS: %.3f, HTTPs: %.3f, HTTP: %.3f, HTTP_CODE: %d, DOWNLOAD_SIZE: %d, 1ST_BYTE: %.3f" %(node, str[1], dns, curl_dns, https, http, http_code, download_size, fst_byte)
+    tmp="insert into curl_points(time, host, node, dns_time, https_time, http_time, code, size, 1st_byte) values (from_unixtime(%.0f), '%s', '%s', %.3f, %.3f, %.3f, %d, %d, %.3f)" %(time.time(), str[1], node, dns, https, http, http_code, download_size, fst_byte)
     print tmp
 
     conn.execute (tmp)

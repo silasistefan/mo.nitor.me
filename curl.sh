@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 host=`echo $1 | sed 's/^.*\.\([a-z\-]*\.[a-z]*\).*/\1/'`
 fhost=`echo $1 | awk -F\/ '{print $3;}'`
@@ -26,7 +26,7 @@ if [ $# -gt 0 ]; then
         -A "Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36" \
         --connect-timeout 5 \
         --max-time 7 \
-        -w "DNS_TIME=${dns}&CURL_DNS=%{time_namelookup}&SSL_TIME=%{time_appconnect}&TRANSFER_TIME=%{time_total}&HTTP_CODE=%{http_code}&DOWNLOAD_SIZE=%{size_download}\n" \
+        -w "DNS_TIME=${dns}&CURL_DNS=%{time_namelookup}&SSL_TIME=%{time_appconnect}&TRANSFER_TIME=%{time_total}&HTTP_CODE=%{http_code}&DOWNLOAD_SIZE=%{size_download}&1ST_BYTE=%{time_starttransfer}\n" \
         --max-redirs 5 \
         -skLo /dev/null ${url}
 else

@@ -5,7 +5,6 @@ https://www.cloudflarecdn.ga/index.html cloudflare.com
 https://www.fastly.cf.global.prod.fastly.net/index.html fastly.com
 https://web-spidervps-monitorme.netdna-ssl.com/index.html maxcdn.com
 https://monitorme.cachefly.net/index.html cachefly.com
-https://811199021.r.worldcdn.net/index.html cdn.net
 https://cdn.jsdelivr.net/monitorme/index.html jsdelivr.com
 https://monitorme.wavecdn.net/index.html wavecdn.com
 https://96099622.r.cdnsun.net/mo.nitor.me.txt cdnsun.com
@@ -17,7 +16,7 @@ https://pagespeed.googlehosted.com/index.html google.com google.mo.nitor.me
 https://ovh.mo.nitor.me.web.cdn.anycast.me/index.html ovh.com ovh.mo.nitor.me
 https://cdnlion.r.worldssl.net/index.html cdnlion.com
 https://d3cjde37zwd1x1.cloudfront.net/index.html amazon.com
-https://skyparkcdn.r.worldssl.net/index.html skyparkcdn.com
+https://gpcnlab1.wpc.v2cdn.net/80B30D/monitorme/index.html edgecast.com
 https://origin.mo.nitor.me/index.html origin
 
 https://aluspacni.mo.nitor.me/image.jpg incapsula.com
@@ -26,7 +25,6 @@ https://www.cloudflarecdn.ga/image.jpg cloudflare.com
 https://www.fastly.cf.global.prod.fastly.net/image.jpg fastly.com
 https://web-spidervps-monitorme.netdna-ssl.com/image.jpg maxcdn.com
 https://monitorme.cachefly.net/image.jpg cachefly.com
-https://811199021.r.worldcdn.net/image.jpg cdn.net
 https://cdn.jsdelivr.net/monitorme/image.jpg jsdelivr.com
 https://monitorme.wavecdn.net/image.jpg wavecdn.com
 https://96099622.r.cdnsun.net/mo.nitor.me.jpg cdnsun.com
@@ -38,5 +36,5 @@ https://pagespeed.googlehosted.com/image.jpg google.com google.mo.nitor.me
 https://ovh.mo.nitor.me.web.cdn.anycast.me/image.jpg ovh.com ovh.mo.nitor.me
 https://cdnlion.r.worldssl.net/image.jpg cdnlion.com
 https://d3cjde37zwd1x1.cloudfront.net/image.jpg amazon.com
-https://skyparkcdn.r.worldssl.net/image.jpg skyparkcdn.com
+https://gpcnlab1.wpc.v2cdn.net/80B30D/monitorme/image.jpg edgecast.com
 https://origin.mo.nitor.me/image.jpg origin

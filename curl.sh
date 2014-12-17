@@ -1,8 +1,11 @@
 #!/bin/bash
 
-host=`echo $1 | sed 's/^.*\.\([a-z\-]*\.[a-z]*\).*/\1/'`
+host=`echo $1 | awk -F \/ '{print $3;}' | awk -F. '{ print $(NF-1) "." $(NF) ; }'`
+#echo "Root host: $host"
 fhost=`echo $1 | awk -F\/ '{print $3;}'`
-req=`echo $1 | sed 's/^.*\/\([a-z]*\.[a-z]*\)$/\1/'`
+#echo "Full hostname: $fhost"
+req=`echo $1 | awk -F\/ '{print $(NF);}'`
+#echo "Requested resource: $req"
 
 if [ ! -z $3 ]; then
     url="https://${3}/${req}"
@@ -12,9 +15,14 @@ fi
 
 x1=1000
 
-for ns in `dig -4 +time=3 +tries=2 NS $host | grep IN | grep -v ";" | awk '{print $5;}'`; do
+# In case the NS record is not present on the nameserver side, i'm getting it from the TLD nameservers
+for ns in `dig -4 +time=3 +tries=2 +trace NS $host | grep IN | grep $host | grep -v SOA | awk '{print $5;}'`; do
     x1=`dig -4 +norecurse +time=3 +tries=2 $fhost @$ns | grep "Query time" | awk '{print $4;}'`
     ip=`dig -4 +norecurse +time=3 +tries=2 +short $fhost @$ns`
+    
+    # It happens with the edgecast CDN that the NS responds in under 1ms. I can't graph that.
+    if [ $x1 -eq 0 ]; then x1=1; fi
+
     if [ $x1 -lt 1000 ]; then break; fi
 done
 

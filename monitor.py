@@ -89,7 +89,7 @@ node=''.join(sys.argv[1:]) or "localhost"
 version='0.2'
 
 config = ConfigParser.ConfigParser()
-config.readfp(open(r'monitor.cfg'))
+config.readfp(open(r'/root/monitor.cfg'))
 
 hostname = config.get('mysql', 'hostname')
 username = config.get('mysql', 'username')

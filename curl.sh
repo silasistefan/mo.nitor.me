@@ -19,7 +19,10 @@ x1=1000
 # This will speed up the script a lot
 
 if [ "$host" == "v2cdn.net" ]; then dns='ns1.v2cdn.net ns2.v2cdn.net';
-else dns=`dig -4 +time=3 +tries=2 +short NS $host`;
+else
+    if [ "$host" == "incapdns.net" ]; then dns="ns1.incapdns.net ns2.incapdns.net ns3.incapdns.net ns4.incapdns.net";
+    else dns=`dig -4 +time=3 +tries=2 +short NS $host`;
+    fi
 fi
 
 for ns in $dns; do

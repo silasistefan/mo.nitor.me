@@ -1,5 +1,14 @@
 [mysql]
-hostname = YOUR_MYSQL_SERVER
-username = YOUR_MYSQL_USER
-password = YOUR_MYSQL_PASS
-database = YOUR_MYSQL_DB
+hostname = IP_or_HOSTNAME
+username = USERNAME
+password = PASSWORD
+database = YOUR_DB
+
+[rabbitmq]
+hostname = IP_or_HOSTNAME
+username = USERNAME_default=guest
+password = PASSWORD_default=guest
+
+hostname_backup = BACKUP_IP_or_the_above_one_again
+username_backup = USERNAME_default=guest
+password_backup = PASSWORD_default=guest

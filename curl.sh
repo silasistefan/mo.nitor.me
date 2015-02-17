@@ -27,7 +27,7 @@ fi
 
 for ns in $dns; do
     x1=`dig -4 +norecurse +time=3 +tries=2 $fhost @$ns | grep "Query time" | awk '{print $4;}'`
-    
+
     # It happens with the edgecast CDN that the NS responds in under 1ms. I can't graph that.
     if [ $x1 -eq 0 ]; then x1=1; fi
 
@@ -39,12 +39,10 @@ dns=`printf %.3f $(echo "${x1}/1000" | bc -l)`
 
 # check 443 or 80 depending on URL
 if [ `echo $1 | grep "https://" | wc -l` -eq 1 ]; then
-    tcp_ping_tmp=`/root/tcp-ping ${ip} 443 | awk '{print $1;}'`
+    ping=`/usr/lib/nagios/plugins/check_tcp -H ${ip} -p 443 | awk '{print $4;}'`
 else
-    tcp_ping_tmp=`/root/tcp-ping ${ip} 80 | awk '{print $1;}'`
+    ping=`/usr/lib/nagios/plugins/check_tcp -H ${ip} -p 80 | awk '{print $4;}'`
 fi
-
-ping=`printf %.3f $(echo "${tcp_ping_tmp}/1000" | bc -l)`
 
 # if number of args > 0
 if [ $# -gt 0 ]; then

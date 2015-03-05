@@ -1,49 +1,33 @@
 #!/usr/bin/env python
-import pika
 import subprocess
 import time
 import random
-import MySQLdb
 import ConfigParser
-
-with open ("/root/node", "r") as myfile:
-    node=myfile.read().replace('\n', '')
+import threading
+import PySQLPool
 
 config = ConfigParser.ConfigParser()
 config.readfp(open(r'/root/monitor.cfg'))
 
-# reading mysql credentials
+#
+# reading config file
+#
 hostname = config.get('mysql', 'hostname')
 username = config.get('mysql', 'username')
 password = config.get('mysql', 'password')
 database = config.get('mysql', 'database')
 
-# reading rabbitmq credentials
-rabbit_hostname = config.get('rabbitmq', 'hostname')
-rabbit_username = config.get('rabbitmq', 'username')
-rabbit_password = config.get('rabbitmq', 'password')
-# reading rabbitmq backup credentials
-rabbit_hostname_backup = config.get('rabbitmq', 'hostname_backup')
-rabbit_username_backup = config.get('rabbitmq', 'username_backup')
-rabbit_password_backup = config.get('rabbitmq', 'password_backup')
+#
+# MySQL connection - I should connect to the slave as well if master is not reachable
+#
+db = PySQLPool.getNewConnection(username=username, password=password, host=hostname, db=database)
+PySQLPool.getNewPool().maxActiveConnections = 10
 
-db = MySQLdb.connect(host=hostname, user=username, passwd=password, db=database)
-conn=db.cursor()
-
-try:
-    credentials = pika.PlainCredentials(rabbit_username, rabbit_password)
-    connection = pika.BlockingConnection(pika.ConnectionParameters(rabbit_hostname, 5672, '/', credentials))
-except Exception:
-    credentials = pika.PlainCredentials(rabbit_username_backup, rabbit_password_backup)
-    connection = pika.BlockingConnection(pika.ConnectionParameters(rabbit_hostname_backup, 5672, '/', credentials))
-
-channel = connection.channel()
-channel.exchange_declare(exchange='urls', type='fanout')
-result = channel.queue_declare(exclusive=True)
-queue_name = result.method.queue
-channel.queue_bind(exchange='urls', queue=queue_name)
-
-print ' [*] Waiting for urls. To exit press CTRL+C'
+#
+# reading node name
+#
+with open ("/root/node", "r") as myfile:
+    node=myfile.read().replace('\n', '')
 
 #
 # get_value - returns the search value. All fields are separated by & and are looking like field_name=field_value
@@ -54,70 +38,84 @@ def get_value(line, search):
         tmp=x[i].split("=")
         if tmp[0] == search:
             return tmp[1]
+#
+# save_data - writes results to file
+#
+def save_data (table, url, node, dns, https, http, http_code, download_size, fst_byte, ping):
+    global conn, db, hostname, username, password, database
+
+    tmp="insert into " + table + " (host, node, dns_time, https_time, http_time, code, size, 1st_byte, ping) values ('%s', '%s', %.3f, %.3f, %.3f, %d, %d, %.3f, %.3f)" %(url[1], node, dns, https, http, http_code, download_size, fst_byte, ping)
+    print tmp
+
+    conn = PySQLPool.getNewQuery(db,commitOnEnd=True)
+    conn.Query(tmp)
 
 #
-# callback - executes the curl call and saves data to mysql
+# main - executes the curl call and saves data to file
 #
-def callback(ch, method, properties, body):
-    global conn, db
-    print " [x] %r" % (body,)
-    url = body.split()
-    # url[0] = url to fetch
-    # url[1] = CDN monitored
-    # url[2] = if present, hostname to be sent to curl
+def work ():
+    threads = []
+    with open ("/root/curl.list") as f:
+        for body in  f:
+            url = body.split()
+            # url[0] = url to fetch
+            # url[1] = CDN monitored
+            # url[2] = if present, hostname to be sent to curl
 
-    protocols = ['http://', 'https://']
+            protocols = ['http://', 'https://']
 
-    for protocol in protocols:
-        # i want to have different random values for http and https
-        if url[1] == "cdnsun.com":
-            requests = ['/mo.nitor.me.jpg', '/mo.nitor.me.txt']
-        else:
-            requests  = ['/index.html', '/index.php?rand=' + str(random.random()*10000), '/image.jpg']
+            for protocol in protocols:
+                # i want to have different random values for http and https
+                if url[1] == "cdnsun.com":
+                    requests = ['/mo.nitor.me.jpg', '/mo.nitor.me.txt']
+                else:
+                    requests  = ['/index.html', '/index.php?rand=' + str(random.random()*10000), '/image.jpg']
 
-        for req in requests:
-            if len(url) == 2:
-                p=subprocess.Popen(["/root/curl.sh", protocol + url[0] + req, url[1]], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            else:
-                p=subprocess.Popen(["/root/curl.sh", protocol + url[0] + req, url[1], url[2]], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                for req in requests:
+                    if len(url) == 2:
+                        p=subprocess.Popen(["/root/curl.sh", protocol + url[0] + req, url[1]], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    else:
+                        p=subprocess.Popen(["/root/curl.sh", protocol + url[0] + req, url[1], url[2]], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    
+                    out,err = p.communicate()
+                    val=out.rstrip()
 
-            out,err = p.communicate()
-            val=out.rstrip()
+                    if req.find("/index.php") == -1:
+                        table = "curl_points"
+                    else:
+                        table = "dynamic_points"
 
-            if req.find("/index.php") == -1:
-                table = "curl_points"
-            else:
-                table = "dynamic_points"
+                    dns = float(get_value(val, "DNS_TIME"))
+                    curl_dns = float(get_value(val, "CURL_DNS"))
+                    http = float(get_value(val, "TRANSFER_TIME")) - curl_dns
 
-            dns = float(get_value(val, "DNS_TIME"))
-            curl_dns = float(get_value(val, "CURL_DNS"))
-            http = float(get_value(val, "TRANSFER_TIME")) - curl_dns
+                    # SSL Handshake can be faster than 1ms, resulting in 0.000ms value
+                    if protocol == "http://":
+                        https = -1
+                    else:
+                        https = float(get_value(val, "SSL_TIME")) - curl_dns
+                        if https == 0.000:
+                            https = 0.001
 
-            # SSL Handshake can be faster than 1ms, resulting in 0.000ms value
-            if protocol == "http://":
-                https = -1
-            else:
-                https = float(get_value(val, "SSL_TIME")) - curl_dns
-                if https == 0.000:
-                    https = 0.001
+                    http_code = int(get_value(val, "HTTP_CODE"))
+                    download_size = int(get_value(val, "DOWNLOAD_SIZE"))
+                    fst_byte = float(get_value(val, "1ST_BYTE")) - curl_dns
+                    ping = float(get_value(val, "ping"))
 
-            http_code = int(get_value(val, "HTTP_CODE"))
-            download_size = int(get_value(val, "DOWNLOAD_SIZE"))
-            fst_byte = float(get_value(val, "1ST_BYTE")) - curl_dns
-            ping = float(get_value(val, "ping"))
+                    print "### URL: %s%s%s (%s)" %(protocol,url[0],req, url[1])
+                    print "# Result: %s" %(val)
+                    print "# Generated values => Node: '%s', CDN: '%s', DNS: %.3f, CURL_DNS: %.3f, HTTPs: %.3f, HTTP: %.3f, HTTP_CODE: %d, DOWNLOAD_SIZE: %d, 1ST_BYTE: %.3f, PING: %.3f" %(node, url[1], dns, curl_dns, https, http, http_code, download_size, fst_byte, ping)
 
-            print "### URL: %s%s%s (%s)" %(protocol,url[0],req, url[1])
-            print "# Result: %s" %(val)
-            print "# Generated values => Node: '%s', CDN: '%s', DNS: %.3f, CURL_DNS: %.3f, HTTPs: %.3f, HTTP: %.3f, HTTP_CODE: %d, DOWNLOAD_SIZE: %d, 1ST_BYTE: %.3f, PING: %.3f" %(node, url[1], dns, curl_dns, https, http, http_code, download_size, fst_byte, ping)
-            tmp="insert into " + table + " (time, host, node, dns_time, https_time, http_time, code, size, 1st_byte, ping) values (from_unixtime(%.0f), '%s', '%s', %.3f, %.3f, %.3f, %d, %d, %.3f, %.3f)" %(time.time(), url[1], node, dns, https, http, http_code, download_size, fst_byte, ping)
-            print "#"
-            print tmp
+                    if "php" in req:
+                        t = threading.Thread(target=save_data, args=("dynamic_points", url, node, dns, https, http, http_code, download_size, fst_byte, ping, ))
+                    else:
+                        t = threading.Thread(target=save_data, args=("curl_points", url, node, dns, https, http, http_code, download_size, fst_byte, ping, ))
+            
+                    threads.append(t)
+                    t.start()
 
-            # write data to MySQL
-            conn.execute (tmp)
-            db.commit()
+    # wait for the threads to finish
+    t.join()
 
-            print "###\n"
-
-channel.basic_consume(callback, queue=queue_name, no_ack=True)
-channel.start_consuming()
+while True:
+    work()
